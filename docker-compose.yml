@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bloodcare
+      POSTGRES_PASSWORD: bloodcare
+      POSTGRES_DB: bloodcare
+    ports:
+      - "5432:5432"
+    volumes:
+      - bloodcare_pg:/var/lib/postgresql/data
+
+volumes:
+  bloodcare_pg:

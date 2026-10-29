@@ -1,0 +1,134 @@
+// BloodCare inventory model — every screenshot surface maps onto these tables.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DONOR
+  PATIENT
+}
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  O_POS
+  O_NEG
+  AB_POS
+  AB_NEG
+}
+
+enum RequestStatus {
+  PENDING
+  FULFILLED
+  REJECTED
+  CANCELLED
+}
+
+enum RequestUrgency {
+  ROUTINE
+  URGENT
+  CRITICAL
+}
+
+enum ActivityKind {
+  PLATFORM_INIT
+  DONOR_REGISTERED
+  DONATION_RECORDED
+  REQUEST_OPENED
+  REQUEST_UPDATED
+  DONOR_REMOVED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         Role
+  bloodGroup   BloodGroup?
+  city         String?
+  dateOfBirth  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  donor        Donor?
+  requests     BloodRequest[]
+}
+
+model Donor {
+  id             String     @id @default(cuid())
+  userId         String?    @unique
+  user           User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fullName       String
+  phone          String
+  city           String
+  bloodGroup     BloodGroup
+  lastDonationAt DateTime?
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  donations      Donation[]
+
+  @@index([bloodGroup])
+  @@index([city])
+  @@index([fullName])
+}
+
+model Donation {
+  id           String     @id @default(cuid())
+  donorId      String
+  donor        Donor      @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  bloodGroup   BloodGroup
+  units        Int
+  millilitres  Int
+  donatedAt    DateTime   @default(now())
+  notes        String?
+  createdAt    DateTime   @default(now())
+
+  @@index([bloodGroup])
+  @@index([donatedAt])
+}
+
+model BloodRequest {
+  id             String         @id @default(cuid())
+  createdById    String?
+  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  patientName    String
+  hospitalName   String
+  city           String
+  phone          String
+  email          String?
+  bloodGroup     BloodGroup
+  unitsRequested Int
+  urgency        RequestUrgency @default(URGENT)
+  status         RequestStatus  @default(PENDING)
+  notes          String?
+  neededBy       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status])
+  @@index([bloodGroup])
+}
+
+model ActivityEvent {
+  id        String       @id @default(cuid())
+  kind      ActivityKind
+  message   String
+  createdAt DateTime     @default(now())
+
+  @@index([createdAt])
+}
+
+model PlatformSetting {
+  key   String @id
+  value String
+}
